@@ -551,10 +551,12 @@ class EmployeeAuthView(APIView):
             return Response({'error': 'Требуется указать имя и PIN-код.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            employee = EmployeeModel.objects.get(name=name,surname=surname, pin_code=pin_code)
-            return Response({'message': 'Аутентификация прошла успешно.', 'employee_id': employee.id}, status=status.HTTP_200_OK)
+            employee = EmployeeModel.objects.get(name=name, surname=surname, pin_code=pin_code)
+            # Успешная аутентификация
+            return Response({'redirect_url': 'https://example.com/tasks&employee_id=' + str(employee.id)}, status=status.HTTP_200_OK)
         except EmployeeModel.DoesNotExist:
-            return Response({'error': 'Неверное имя или PIN-код.'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Ошибка аутентификации
+            return Response({'error': 'Неверное имя, фамилия или PIN-код.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class StartTaskView(APIView):
