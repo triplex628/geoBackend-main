@@ -217,7 +217,8 @@ class EmployeeModel(models.Model):
     patronymic = models.CharField(max_length=max_length, verbose_name="Отчество", null=True, blank=True, default='')
     plot = models.ForeignKey(PlotModel, verbose_name="Участок", on_delete=models.CASCADE)
     pin_code = models.CharField(max_length=4, verbose_name="PIN код")
-    
+    shift_start = models.TimeField(verbose_name="Начало смены", null=True, blank=True)
+    shift_end = models.TimeField(verbose_name="Конец смены", null=True, blank=True)
     status = models.BooleanField(verbose_name="Занят", default=False, blank=True)
     
     def __str__(self):
