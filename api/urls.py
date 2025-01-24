@@ -1,7 +1,8 @@
 from django.urls import path
 from . import views
-from .views import EmployeeAuthView
+from .views import EmployeeAuthView, end_task, start_rework, end_rework, start_useful_time, stop_useful_time, stop_non_working_time
 from utils.report_generator import ReportGenerator
+from .models import TaskModel
 urlpatterns = [
     path('employees/', views.EmployeeView.as_view(), name='employee-list-create'),
     path('admins/', views.AdminView.as_view(), name='employee-list-create'),
@@ -21,5 +22,13 @@ urlpatterns = [
     path('employee-task/create/', views.create_employee_task, name='create-employee-task'),
     path('plan-break/', views.plan_break, name='plan-break'),
     path('auth/', EmployeeAuthView.as_view(), name='employee-auth'),
-    #path('api/reports/full/', ReportGenerator().generate_report, name='generate_full_report'),
+    path('check-shift/', views.check_shift, name='check-shift'),
+    path('stop-non-working-time/', stop_non_working_time, name='stop_non_working_time'),
+    #path('close-task/<int:task_id>/', TaskModel.close_task, name='close-task'),
+    #path('employee-task/<int:task_id>/<str:action>/', EmployeeTaskActionAPIView.as_view(), name='employee-task-action'),
+    path('ene-task/', views.end_task, name='end_task'),
+    path('start-rework/', start_rework, name='start_rework'),
+    path('end-rework/', end_rework, name='end_rework'),
+    path('start-useful-time/', start_useful_time, name='start_useful_time'),
+    path('stop-useful-time/', stop_useful_time, name='stop_useful_time'),
 ]

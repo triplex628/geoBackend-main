@@ -177,30 +177,8 @@ class TaskModel(models.Model):
     is_available = models.BooleanField(verbose_name='Статус задачи', default=True, blank=True)
     admin = models.ForeignKey(AdminModel, verbose_name="Администратор", on_delete=models.CASCADE)
     created_at = models.DateTimeField(verbose_name="Время создания", auto_now_add=True)
+    finished_at = models.DateTimeField(verbose_name="Время завершения", null=True, blank=True) 
     manual_item_id = models.IntegerField(verbose_name="ID прибора", null=True, blank=True)
-    useful_time = models.DurationField(verbose_name="Полезное время", default=timedelta(0))  
-    total_time = models.DurationField(verbose_name="Общее время", default=timedelta(0))   
-    rework_time = models.DurationField(verbose_name="Время переделки", default=timedelta(0))  
-
-    def start_task(self):
-        if not self.started_at:
-            self.started_at = timezone.now()
-        self.save()
-
-    def finish_task(self):
-        if not self.completed_at:
-            self.completed_at = timezone.now()
-            self.total_time += self.completed_at - self.started_at
-        self.save()
-
-    def add_rework(self, duration):
-        self.rework_time += duration
-        self.save()
-
-    def add_useful_time(self, start, end):
-        self.useful_time += end - start
-        self.save()
-
 
     def __str__(self):
         return self.title
@@ -248,20 +226,16 @@ class EmployeeTaskModel(models.Model):
     end_time = models.DateTimeField(verbose_name="Время окончания", null=True, blank=True)
     item = models.ForeignKey(ItemModel, verbose_name="ID прибора", null=True, blank=True, on_delete=models.CASCADE)
     admin = models.ForeignKey(AdminModel, verbose_name="ID администратора", null=True, blank=True, on_delete=models.CASCADE)
-    rework_time = models.DurationField(verbose_name="Время переделки", default=timedelta(0)) 
+    useful_time = models.IntegerField(verbose_name="Полезное время", default=0) 
+    last_start_time = models.DateTimeField(verbose_name="Начало полезного времени", default=timedelta(0)) 
+    total_time = models.DurationField(verbose_name="Общее время", default=timedelta(0))   
+    rework_time = models.IntegerField(verbose_name="Время переделки", default=0)  
+    non_working_time = models.IntegerField(verbose_name="Внерабочее время", default=0)
+    last_rework_start = models.DateTimeField(verbose_name="Время начала переделки", null=True, blank=True)  
+    last_rework_end = models.DateTimeField(verbose_name="Время конца переделки", null=True, blank=True)  
+    last_non_working_start = models.DateTimeField(verbose_name="Время начала внерабочего вермени", null=True, blank=True)
+    last_non_working_end = models.DateTimeField(verbose_name="Время конца внерабочего времени", null=True, blank=True)
 
-    def calculate_useful_time(self):
-        if self.start_time and self.end_time:
-            return self.end_time - self.start_time - self.rework_time
-        return None
-
-    def calculate_total_time(self):
-        if self.start_time:
-            return timezone.now() - self.start_time if not self.end_time else self.end_time - self.start_time
-        return None
-
-    def calculate_rework_time(self):
-        return self.rework_time
     def __str__(self):
         return f"{self.task} {self.employee}"
     
