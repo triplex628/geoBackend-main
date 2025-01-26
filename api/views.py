@@ -2,7 +2,7 @@
 import json
 
 from datetime import datetime, time, timedelta
-
+from django.utils.dateparse import parse_date
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.utils import timezone
@@ -16,7 +16,7 @@ from django.utils.timezone import now
 from . import models
 from . import serializers
 
-from utils.report_generator import ReportGenerator
+from utils.report_generator import ReportGenerator, generate_zalup_report
 from .models import AdminModel, EmployeeTaskModel, ItemModel, EmployeeModel, TaskModel
 from traceback import format_exc
 from django.views.decorators.csrf import csrf_exempt
@@ -395,7 +395,7 @@ def choose_task(request, *args, **kwargs):
     print("Received data:", request.data)
     print("Admin ID:", admin_id)
 
-    # Проверка на наличие employee_id и admin_id
+    
     if not employee_id or not admin_id:
         return Response({"error": "employee_id and admin_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -415,7 +415,7 @@ def choose_task(request, *args, **kwargs):
         task=task,
         item=item,
         employee_comment=comment,
-        admin_id=admin_id  # Устанавливаем admin_id при создании employee_task
+        admin_id=admin_id  
     )
 
     employee_task.save()
@@ -462,7 +462,39 @@ def generate_report(request, *args, **kwargs):
         return Response({"error": f"Failed to generate report: {str(e)}"}, status=500)
 
 
+@api_view(['GET'])
+def generate_single_report(request):
+    """
+    Эндпоинт для генерации и скачивания отчета по задачам с фильтрацией по дате.
+    """
+    # Получение начальной и конечной даты из параметров запроса
+    start_time = request.GET.get('start_time')
+    end_time = request.GET.get('end_time')
 
+    # Проверка корректности дат
+    if not start_time or not end_time:
+        return Response({"error": "Both 'start_time' and 'end_time' are required."}, status=400)
+
+    try:
+        start_time = parse_date(start_time)
+        end_time = parse_date(end_time)
+
+        if not start_time or not end_time:
+            raise ValueError("Invalid date format.")
+    except ValueError:
+        return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+    # Фильтрация задач по дате
+    employee_tasks = EmployeeTaskModel.objects.filter(
+        start_time__date__gte=start_time,
+        start_time__date__lte=end_time
+    )
+
+    if not employee_tasks.exists():
+        return Response({"error": "No tasks found for the given date range."}, status=404)
+
+    # Генерация отчета и возврат HTTP-ответа
+    return generate_zalup_report(employee_tasks)
 
 
 @api_view(['POST'])
@@ -550,11 +582,11 @@ class EmployeeAuthView(APIView):
         id = request.data.get('id')
         pin_code = request.data.get('pin_code')
 
-        if not name or not pin_code:
+        if not id or not pin_code:
             return Response({'error': 'Требуется указать имя и PIN-код.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            employee = EmployeeModel.objects.get(name=name, surname=surname, pin_code=pin_code)
+            employee = EmployeeModel.objects.get(id=id, pin_code=pin_code)
             # Успешная аутентификация
             return Response({'redirect_url': 'https://example.com/tasks&employee_id=' + str(employee.id)}, status=status.HTTP_200_OK)
         except EmployeeModel.DoesNotExist:
@@ -668,28 +700,28 @@ def end_task(request):
             data = json.loads(request.body)
             task_id = data.get('task_id')
 
-            # Проверка на наличие task_id
+            
             if not task_id:
                 return JsonResponse({"error": "task_id is required"}, status=400)
 
-            # Получение задачи из базы данных
+            
             task = TaskModel.objects.filter(id=task_id).first()
             if not task:
                 return JsonResponse({"error": "Task not found"}, status=404)
 
-            # Проверка наличия created_at и finished_at
+            
             if not task.created_at or not task.finished_at:
                 return JsonResponse({"error": "Task does not have valid timestamps"}, status=400)
 
-            # Расчет времени выполнения задачи
+            
             time_difference = task.finished_at - task.created_at
 
-            # Получение записи EmployeeTaskModel
+            
             employee_task = EmployeeTaskModel.objects.filter(task=task).first()
             if not employee_task:
                 return JsonResponse({"error": "EmployeeTaskModel not found for the given task"}, status=404)
 
-            # Обновление поля total_time
+            
             total_seconds = time_difference.total_seconds()
             total_time = timedelta(seconds=total_seconds)
             employee_task.total_time = total_time

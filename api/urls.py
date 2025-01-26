@@ -19,6 +19,7 @@ urlpatterns = [
     path('choose-task/', views.choose_task, name="choose_task"),
     path('login/', views.sign_in, name="login"),
     path('generate-report/', views.generate_report, name="generate-report"),
+    path('generate-single-report/', views.generate_single_report, name="generate-single-report"),
     path('employee-task/create/', views.create_employee_task, name='create-employee-task'),
     path('plan-break/', views.plan_break, name='plan-break'),
     path('auth/', EmployeeAuthView.as_view(), name='employee-auth'),
